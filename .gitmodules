@@ -1,0 +1,3 @@
+[submodule "external/geomtk"]
+	path = external/geomtk
+	url = https://github.com/dongli/geomtk
