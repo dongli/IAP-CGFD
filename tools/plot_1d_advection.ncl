@@ -4,11 +4,15 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 
 begin
 
+	;	file_prefix		:	title
+	; - upwind 			: 	Upwind scheme
+	; - lax_wendroff 	: 	Lax-Wendroff scheme
+	file_prefix = "lax_wendroff"
+	title = "Lax-Wendroff scheme"
 	root = "."
 	start_time = 0
 	end_time = 100
 	time_step = 1
-	file_prefix = "upwind"
 	time_stamp = "%3.3d"
 
 	fs = systemfunc("for (( i = "+start_time+"; i <= "+end_time+"; "+ \
@@ -20,13 +24,14 @@ begin
 	res@vpHeightF = 0.4
 	res@trXMinF = 0
 	res@trXMaxF = 1
-	res@trYMinF = 0
-	res@trYMaxF = 1
-	res@tmXBTickStartF = 0
-	res@tmXBTickEndF = 1
-	res@tmYLTickStartF = 0
-	res@tmYLTickEndF = 1
+	res@trYMinF = -0.2
+	res@trYMaxF = 1.2
+	res@tmXBTickStartF = res@trXMaxF
+	res@tmXBTickEndF = res@trXMinF
+	res@tmYLTickStartF = res@trYMinF
+	res@tmYLTickEndF = res@trYMaxF
 	res@xyLineThicknessF = 5.0
+	res@tiMainString = title
 
 	wks = gsn_open_wks("pdf", file_prefix)
 
