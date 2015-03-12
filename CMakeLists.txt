@@ -11,3 +11,4 @@ link_directories (${GEOMTK_LIBRARY_DIRS})
 
 add_subdirectory ("${PROJECT_SOURCE_DIR}/advection/upwind")
 add_subdirectory ("${PROJECT_SOURCE_DIR}/advection/lax_wendroff")
+add_subdirectory ("${PROJECT_SOURCE_DIR}/advection/ftcs")
