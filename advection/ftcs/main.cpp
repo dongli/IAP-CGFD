@@ -21,7 +21,7 @@ int main(int argc, const char *argv[])
                    1, geomtk::BndType::PERIODIC);
 
     // Set the discrete mesh on the domain.
-    mesh.init(domain.axisSpan(0)/DX, 1);
+    mesh.init(domain.axisSpan(0)/DX);
 
     // Set the time manager.
     Time startTime(0*geomtk::TimeUnit::SECONDS);
