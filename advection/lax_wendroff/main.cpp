@@ -25,7 +25,7 @@ int main(int argc, const char *argv[])
 
     // Set the time manager.
     Time startTime(0*geomtk::TimeUnit::SECONDS);
-    Time endTime(100*geomtk::TimeUnit::SECONDS);
+    Time endTime(200*geomtk::TimeUnit::SECONDS);
     timeManager.init(startTime, endTime, DT);
 
     // Set up velocity and density fields.

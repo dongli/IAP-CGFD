@@ -8,11 +8,12 @@ begin
     ; - upwind          :   Upwind scheme
     ; - lax_wendroff    :   Lax-Wendroff scheme
     ; - ftcs            :   Forward-time center-space scheme
-    file_prefix = "ftcs"
-    title = "Forward-time center-space scheme"
+    ; - mpdata          :   MPDATA scheme
+    file_prefix = "mpdata"
+    title = "MPDATA scheme"
     root = "."
     start_time = 0
-    end_time = 100
+    end_time = 200
     time_step = 1
     time_stamp = "%3.3d"
 

@@ -2,14 +2,16 @@
 
 #define DT 1
 #define DX 0.01
-#define OUTPUT "ftcs.%3s.nc"
+#define IORD 4
+#define EPS 1.0e-15
+#define OUTPUT "mpdata.%3s.nc"
 
 int main(int argc, const char *argv[])
 {
     Domain domain(1);
     Mesh mesh(domain);
     Field<double, 2> u, f;
-    Field<double> fu;
+    Field<double> uc, fu, g;
     TimeManager timeManager;
     IOManager io;
     int outputFileIdx;
@@ -31,7 +33,9 @@ int main(int argc, const char *argv[])
     // Set up velocity and density fields.
     u.create("u", "m s-1", "velocity component along x axis", mesh, X_FACE, 1, true);
     f.create("f", "kg m-1", "tracer density", mesh, CENTER, 1);
+    uc.create("uc", "m s-1", "antidiffusion velocity component along x axis", mesh, X_FACE, 1);
     fu.create("fu", "kg s-1", "tracer mass flux", mesh, X_FACE, 1);
+    g.create("g", "kg m-1", "temporary tracer density", mesh, CENTER, 1);
 
     // Set the initial conditions.
     newIdx = oldIdx+1;
@@ -43,7 +47,7 @@ int main(int argc, const char *argv[])
     u.applyBndCond(newIdx, true);
     for (int i = mesh.is(FULL); i <= mesh.ie(FULL); ++i) {
         const SpaceCoord &x = mesh.gridCoord(CENTER, i);
-        if (x(0) >= 0.05 && x(0) <= 0.1) {
+        if (x(0) >= 0.05 && x(0) <= 0.25) {
             f(oldIdx, i) = 1.0;
         } else {
             f(oldIdx, i) = 0.0;
@@ -60,14 +64,29 @@ int main(int argc, const char *argv[])
     // Run the main loop.
     while (!timeManager.isFinished()) {
         newIdx = oldIdx+1; halfIdx = oldIdx+0.5;
-        for (int i = mesh.is(HALF); i <= mesh.ie(HALF); ++i) {
-            fu(i) = DT/DX*0.5*(u(halfIdx, i)*(f(oldIdx, i+1)+f(oldIdx, i)));
+        // Copy the initial velocity and tracer density.
+        uc() = u(halfIdx); g() = f(oldIdx);
+        for (int l = 1; l <= IORD; ++l) {
+            if (l > 1) {
+                // Calculate antidiffusion velocity.
+                for (int i = mesh.is(HALF); i <= mesh.ie(HALF); ++i) {
+                    uc(i) = (fabs(uc(i))*DX-pow(uc(i), 2)*DT)*
+                            (g(i+1)-g(i))/(g(i+1)+g(i)+EPS)/DX;
+                }
+            }
+            // Calculate the mass flux at cell interfaces.
+            for (int i = mesh.is(HALF); i <= mesh.ie(HALF); ++i) {
+                fu(i) = DT/DX*0.5*(     uc(i) *(g(i+1)+g(i))-
+                                   fabs(uc(i))*(g(i+1)-g(i)));
+            }
+            fu.applyBndCond();
+            for (int i = mesh.is(FULL); i <= mesh.ie(FULL); ++i) {
+                g(i) = g(i)-(fu(i)-fu(i-1));
+            }
+            g.applyBndCond();
         }
-        fu.applyBndCond();
-        for (int i = mesh.is(FULL); i <= mesh.ie(FULL); ++i) {
-            f(newIdx, i) = f(oldIdx, i)-(fu(i)-fu(i-1));
-        }
-        f.applyBndCond(newIdx);
+        // Copy the final tracer density.
+        f(newIdx) = g();
         timeManager.advance(); oldIdx.shift();
         io.output<double, 2>(outputFileIdx, oldIdx, {&f});
     }
