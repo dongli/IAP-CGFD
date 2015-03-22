@@ -9,6 +9,7 @@ begin
     ; - lax_wendroff    :   Lax-Wendroff scheme
     ; - ftcs            :   Forward-time center-space scheme
     ; - leapfrog        :   Leap-frog scheme
+    ; - crank_nicolson  :   Crank-Nicolson scheme
     ; - mpdata          :   MPDATA scheme
     file_prefix = "mpdata"
     title = "MPDATA scheme"

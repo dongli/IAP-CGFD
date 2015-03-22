@@ -9,8 +9,15 @@ add_subdirectory ("${PROJECT_SOURCE_DIR}/external/geomtk")
 include_directories (${GEOMTK_INCLUDE_DIRS})
 link_directories (${GEOMTK_LIBRARY_DIRS})
 
+# GSL
+list (APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}")
+find_package (GSL REQUIRED)
+include_directories (${GSL_INCLUDE_DIRS})
+link_directories (${GSL_LIBRARY_DIRS})
+
 add_subdirectory ("${PROJECT_SOURCE_DIR}/advection/upwind")
 add_subdirectory ("${PROJECT_SOURCE_DIR}/advection/lax_wendroff")
 add_subdirectory ("${PROJECT_SOURCE_DIR}/advection/ftcs")
 add_subdirectory ("${PROJECT_SOURCE_DIR}/advection/leapfrog")
 add_subdirectory ("${PROJECT_SOURCE_DIR}/advection/mpdata")
+add_subdirectory ("${PROJECT_SOURCE_DIR}/advection/crank_nicolson")
