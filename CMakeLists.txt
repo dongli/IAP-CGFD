@@ -16,6 +16,7 @@ include_directories (${GSL_INCLUDE_DIRS})
 link_directories (${GSL_LIBRARY_DIRS})
 
 add_subdirectory ("${PROJECT_SOURCE_DIR}/advection/upwind")
+add_subdirectory ("${PROJECT_SOURCE_DIR}/advection/beam_warming")
 add_subdirectory ("${PROJECT_SOURCE_DIR}/advection/lax_wendroff")
 add_subdirectory ("${PROJECT_SOURCE_DIR}/advection/ftcs")
 add_subdirectory ("${PROJECT_SOURCE_DIR}/advection/leapfrog")

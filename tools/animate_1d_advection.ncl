@@ -4,15 +4,20 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 
 begin
 
-    ;   file_prefix     :   title
-    ; - upwind          :   Upwind scheme
-    ; - lax_wendroff    :   Lax-Wendroff scheme
-    ; - ftcs            :   Forward-time center-space scheme
-    ; - leapfrog        :   Leap-frog scheme
-    ; - crank_nicolson  :   Crank-Nicolson scheme
-    ; - mpdata          :   MPDATA scheme
-    file_prefix = "mpdata"
-    title = "MPDATA scheme"
+    scheme_index = 1
+
+    available_schemes = (/ \
+        (/"upwind",         "Upwind scheme"/), \
+        (/"beam_warming",   "Beam-Warming scheme"/), \
+        (/"lax_wendroff",   "Lax-Wendroff scheme"/), \
+        (/"ftcs",           "Forward-time center-space scheme"/), \
+        (/"leapfrog",       "Leap-frog scheme"/), \
+        (/"crank_nicolson", "Crank-Nicolson scheme"/), \
+        (/"mpdata",         "MPDATA scheme"/) \
+    /)
+
+    file_prefix = available_schemes(scheme_index, 0)
+    title = available_schemes(scheme_index, 1)
     root = "."
     start_time = 0
     end_time = 200
