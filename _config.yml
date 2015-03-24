@@ -1,5 +1,6 @@
 # Site settings
 title: IAP-CGFD
+baseurl: /cgfd
 email: dongli@lasg.iap.ac.cn
 github_username:  dongli
 
