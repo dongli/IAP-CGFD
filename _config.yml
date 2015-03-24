@@ -1,0 +1,7 @@
+# Site settings
+title: IAP-CGFD
+email: dongli@lasg.iap.ac.cn
+github_username:  dongli
+
+# Build settings
+markdown: kramdown

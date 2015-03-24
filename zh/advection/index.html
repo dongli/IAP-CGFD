@@ -1,0 +1,46 @@
+---
+layout: default
+title: 平流方案
+category: zh
+---
+<h1>简介</h1>
+<p>
+	平流方案是求解如下连续方程的数值求解算法的统称
+    \begin{equation}
+        \frac{\partial \rho}{\partial t} + \mathbf{v} \cdot \nabla \rho = -\rho \nabla \cdot \mathbf{v}.
+        \label{eqn:advection-equation}
+    \end{equation}
+    方程\eqref{eqn:advection-equation}描述的是在无源汇情况下，在给定风场\(\mathbf{v}\)的平流下，示踪物质量空间分布随时间的变化。
+</p>
+<h1>有限差分方法</h1>
+<p>
+	下面将以周期边界条件下的一维<b>常速度</b>平流方程
+	\begin{equation}
+		\frac{\partial \rho}{\partial t} + u \frac{\partial \rho}{\partial x} = 0
+		\label{eqn:1d-const-velocity-advection-equation}
+	\end{equation}
+	作为范例，考察若干种典型差分格式的模拟能力。
+	<table class="center">
+		<tr>
+			<th>格式名</th>
+		</tr>
+		<tr>
+			<td><a href="examples/finite_difference/ftcs.html">时间前差-空间中央差</a></td>
+		</tr>
+		<tr>
+			<td><a href="examples/finite_difference/upwind.html">一阶迎风格式</a></td>
+		</tr>
+		<tr>
+			<td>Beam-Warming格式</td>
+		</tr>
+		<tr>
+			<td>Lax-Wendroff格式</td>
+		</tr>
+		<tr>
+			<td>蛙跳格式</td>
+		</tr>
+		<tr>
+			<td>Crank-Nicolson格式</td>
+		</tr>
+	</table>
+</p>
