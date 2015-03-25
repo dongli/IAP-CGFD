@@ -109,11 +109,7 @@ int main(int argc, const char *argv[])
             double tmp2 = fabs(A(i+1))+A(i+1);
             double cstar = 0.5 *(tmp1/(fabs(A(i))+eps)+tmp2/(fabs(A(i+1))+eps))-
                            0.25*(tmp1*tmp2/(fabs(A(i))*fabs(A(i+1))+eps));
-            if (cstar < 0.5) {
-                cstar = 0;
-            } else {
-                cstar = 1;
-            }
+            // NOTE: We let cstar be 0 or 1.
             cstar = cstar < 0.5 ? 0 : 1;
             ustar(i) = (cstar+(1-cstar)*C*fabs(u(halfIdx, i)))*u(halfIdx, i);
         }
