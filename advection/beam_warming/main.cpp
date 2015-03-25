@@ -8,6 +8,7 @@ int main(int argc, const char *argv[])
     Domain domain(1);
     Mesh mesh(domain, 2);
     Field<double, 2> u, f;
+    Field<double> fu;
     TimeManager timeManager;
     IOManager io;
     int outputFileIdx;
@@ -42,6 +43,7 @@ int main(int argc, const char *argv[])
     // Set up velocity and density fields.
     u.create("u", "m s-1", "velocity component along x axis", mesh, X_FACE, 1, true);
     f.create("f", "kg m-1", "tracer density", mesh, CENTER, 1);
+    fu.create("fu", "kg s-1", "tracer mass flux", mesh, X_FACE, 1);
 
     // Set the initial conditions.
     newIdx = oldIdx+1;
@@ -68,19 +70,16 @@ int main(int argc, const char *argv[])
     io.output<double, 2>(outputFileIdx, oldIdx, {&f});
 
     // Run the main loop.
+    double C = dt/dx;
     while (!timeManager.isFinished()) {
         newIdx = oldIdx+1; halfIdx = oldIdx+0.5;
+        for (int i = mesh.is(HALF); i <= mesh.ie(HALF); ++i) {
+            fu(i) = 0.5*C*(      u(halfIdx, i)    *(3*f(oldIdx, i)-f(oldIdx, i-1))-
+                           C*pow(u(halfIdx, i), 2)*(  f(oldIdx, i)-f(oldIdx, i-1)));
+        }
+        fu.applyBndCond();
         for (int i = mesh.is(FULL); i <= mesh.ie(FULL); ++i) {
-            double left = 0, right = 0;
-            if (u(halfIdx, i-1) > 0) {
-                double a = u(halfIdx, i-1)*dt/dx;
-                left = dt/dx*u(halfIdx, i-1)*(0.5*(1-a)*f(oldIdx, i-2)-(2-a)*f(oldIdx, i-1)+0.5*(3-a)*f(oldIdx, i));
-            }
-            if (u(halfIdx, i) < 0) {
-                double a = -u(halfIdx, i)*dt/dx;
-                right = dt/dx*u(halfIdx, i)*(-0.5*(1+a)*f(oldIdx, i+2)+(2+a)*f(oldIdx, i+1)-0.5*(3+a)*f(oldIdx, i));
-            }
-            f(newIdx, i) = f(oldIdx, i)-(left+right);
+            f(newIdx, i) = f(oldIdx, i)-(fu(i)-fu(i-1));
         }
         f.applyBndCond(newIdx);
         timeManager.advance(); oldIdx.shift();

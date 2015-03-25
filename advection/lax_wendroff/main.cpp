@@ -70,11 +70,12 @@ int main(int argc, const char *argv[])
     io.output<double, 2>(outputFileIdx, oldIdx, {&f});
 
     // Run the main loop.
+    double C = dt/dx;
     while (!timeManager.isFinished()) {
         newIdx = oldIdx+1; halfIdx = oldIdx+0.5;
         for (int i = mesh.is(HALF); i <= mesh.ie(HALF); ++i) {
-            fu(i) = dt/dx*0.5*(          u(halfIdx, i)    *(f(oldIdx, i+1)+f(oldIdx, i))-
-                               dt/dx*pow(u(halfIdx, i), 2)*(f(oldIdx, i+1)-f(oldIdx, i)));
+            fu(i) = C*0.5*(      u(halfIdx, i)    *(f(oldIdx, i+1)+f(oldIdx, i))-
+                           C*pow(u(halfIdx, i), 2)*(f(oldIdx, i+1)-f(oldIdx, i)));
         }
         fu.applyBndCond();
         for (int i = mesh.is(FULL); i <= mesh.ie(FULL); ++i) {
