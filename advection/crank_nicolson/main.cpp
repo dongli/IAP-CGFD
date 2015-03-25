@@ -1,12 +1,11 @@
 #include "geomtk/Cartesian.h"
 #include <gsl/gsl_linalg.h>
 
-#define DT 1
-#define DX 0.01
-#define OUTPUT "crank_nicolson.%3s.nc"
+using namespace std;
 
 int main(int argc, const char *argv[])
 {
+    ConfigManager configManager;
     Domain domain(1);
     Mesh mesh(domain);
     Field<double, 2> u, f;
@@ -17,18 +16,31 @@ int main(int argc, const char *argv[])
     int outputFileIdx;
     TimeLevelIndex<2> oldIdx, newIdx, halfIdx;
 
+    double dt, dx;
+    string outputPattern = "crank_nicolson.%3s.nc";
+
+    if (argc != 2) {
+        REPORT_ERROR("Configure file is needed!");
+    }
+
+    // Read configuration from file.
+    configManager.parse(argv[1]);
+    dt = configManager.getValue("crank_nicolson", "dt", 1);
+    dx = configManager.getValue("crank_nicolson", "dx", 0.01);
+    outputPattern = configManager.getValue("crank_nicolson", "output_pattern", outputPattern);
+
     // Set the one dimensional space axis.
     domain.setAxis(0, "x", "x axis", "m",
                    0, geomtk::BndType::PERIODIC,
                    1, geomtk::BndType::PERIODIC);
 
     // Set the discrete mesh on the domain.
-    mesh.init(domain.axisSpan(0)/DX);
+    mesh.init(domain.axisSpan(0)/dx);
 
     // Set the time manager.
     Time startTime(0*geomtk::TimeUnit::SECONDS);
     Time endTime(200*geomtk::TimeUnit::SECONDS);
-    timeManager.init(startTime, endTime, DT);
+    timeManager.init(startTime, endTime, dt);
 
     // Set up velocity and density fields.
     u.create("u", "m s-1", "velocity component along x axis", mesh, X_FACE, 1);
@@ -62,12 +74,12 @@ int main(int argc, const char *argv[])
 
     // Set up IO manager.
     io.init(timeManager);
-    outputFileIdx = io.registerOutputFile(mesh, OUTPUT, geomtk::TimeStepUnit::STEP, 1);
+    outputFileIdx = io.registerOutputFile(mesh, outputPattern, geomtk::TimeStepUnit::STEP, 1);
     io.registerField(outputFileIdx, "double", FULL_DIMENSION, {&f});
     io.output<double, 2>(outputFileIdx, oldIdx, {&f});
 
     // Run the main loop.
-    double C = DT/DX*0.25;
+    double C = dt/dx*0.25;
     while (!timeManager.isFinished()) {
         newIdx = oldIdx+1; halfIdx = oldIdx+0.5;
         for (int i = mesh.is(FULL); i <= mesh.ie(FULL); ++i) {

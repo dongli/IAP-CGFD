@@ -4,7 +4,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 
 begin
 
-    scheme_index = 1
+    scheme_index = 7
 
     available_schemes = (/ \
         (/"upwind",         "Upwind scheme"/), \
@@ -13,7 +13,8 @@ begin
         (/"ftcs",           "Forward-time center-space scheme"/), \
         (/"leapfrog",       "Leap-frog scheme"/), \
         (/"crank_nicolson", "Crank-Nicolson scheme"/), \
-        (/"mpdata",         "MPDATA scheme"/) \
+        (/"mpdata",         "MPDATA scheme"/), \
+        (/"tspas",          "TSPAS scheme"/) \
     /)
 
     file_prefix = available_schemes(scheme_index, 0)
