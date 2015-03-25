@@ -6,7 +6,7 @@ int main(int argc, const char *argv[])
 {
     ConfigManager configManager;
     Domain domain(1);
-    Mesh mesh(domain);
+    Mesh mesh(domain, 2);
     Field<double, 2> u, f;
     Field<double> fu;
     TimeManager timeManager;
@@ -15,7 +15,7 @@ int main(int argc, const char *argv[])
     TimeLevelIndex<2> oldIdx, newIdx, halfIdx;
 
     double dt, dx;
-    string outputPattern = "lax_wendroff.%3s.nc";
+    string outputPattern = "fromm.%3s.nc";
 
     if (argc != 2) {
         REPORT_ERROR("Configure file is needed!");
@@ -23,9 +23,9 @@ int main(int argc, const char *argv[])
 
     // Read configuration from file.
     configManager.parse(argv[1]);
-    dt = configManager.getValue("lax_wendroff", "dt", 1);
-    dx = configManager.getValue("lax_wendroff", "dx", 0.01);
-    outputPattern = configManager.getValue("lax_wendroff", "output_pattern", outputPattern);
+    dt = configManager.getValue("fromm", "dt", 1);
+    dx = configManager.getValue("fromm", "dx", 0.01);
+    outputPattern = configManager.getValue("fromm", "output_pattern", outputPattern);
 
     // Set the one dimensional space axis.
     domain.setAxis(0, "x", "x axis", "m",
@@ -74,8 +74,11 @@ int main(int argc, const char *argv[])
     while (!timeManager.isFinished()) {
         newIdx = oldIdx+1; halfIdx = oldIdx+0.5;
         for (int i = mesh.is(HALF); i <= mesh.ie(HALF); ++i) {
-            fu(i) = 0.5*C*(      u(halfIdx, i)    *(f(oldIdx, i+1)+f(oldIdx, i))-
-                           C*pow(u(halfIdx, i), 2)*(f(oldIdx, i+1)-f(oldIdx, i)));
+            double lw = 0.5*C*(      u(halfIdx, i)    *(f(oldIdx, i+1)+f(oldIdx, i))-
+                               C*pow(u(halfIdx, i), 2)*(f(oldIdx, i+1)-f(oldIdx, i)));
+            double bw = 0.5*C*(      u(halfIdx, i)    *(3*f(oldIdx, i)-f(oldIdx, i-1))-
+                               C*pow(u(halfIdx, i), 2)*(  f(oldIdx, i)-f(oldIdx, i-1)));
+            fu(i) = 0.5*(lw+bw);
         }
         fu.applyBndCond();
         for (int i = mesh.is(FULL); i <= mesh.ie(FULL); ++i) {

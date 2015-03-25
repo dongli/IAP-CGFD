@@ -10,6 +10,7 @@ begin
         (/"upwind",         "Upwind scheme"/), \
         (/"beam_warming",   "Beam-Warming scheme"/), \
         (/"lax_wendroff",   "Lax-Wendroff scheme"/), \
+        (/"fromm",          "Fromm scheme"/), \
         (/"ftcs",           "Forward-time center-space scheme"/), \
         (/"leapfrog",       "Leap-frog scheme"/), \
         (/"crank_nicolson", "Crank-Nicolson scheme"/), \
