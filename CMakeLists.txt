@@ -24,3 +24,6 @@ add_subdirectory ("${PROJECT_SOURCE_DIR}/advection/leapfrog")
 add_subdirectory ("${PROJECT_SOURCE_DIR}/advection/tspas")
 add_subdirectory ("${PROJECT_SOURCE_DIR}/advection/mpdata")
 add_subdirectory ("${PROJECT_SOURCE_DIR}/advection/crank_nicolson")
+add_subdirectory ("${PROJECT_SOURCE_DIR}/advection/semi_lagrangian")
+
+add_subdirectory ("${PROJECT_SOURCE_DIR}/shallow_water/cartesian/semi_lagrangian")

@@ -74,6 +74,7 @@ int main(int argc, const char *argv[])
     while (!timeManager.isFinished()) {
         newIdx = oldIdx+1; halfIdx = oldIdx+0.5;
         for (int i = mesh.is(HALF); i <= mesh.ie(HALF); ++i) {
+            // TODO: The following flux is only valid when u > 0.
             double lw = 0.5*C*(      u(halfIdx, i)    *(f(oldIdx, i+1)+f(oldIdx, i))-
                                C*pow(u(halfIdx, i), 2)*(f(oldIdx, i+1)-f(oldIdx, i)));
             double bw = 0.5*C*(      u(halfIdx, i)    *(3*f(oldIdx, i)-f(oldIdx, i-1))-
