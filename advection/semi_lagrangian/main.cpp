@@ -28,7 +28,7 @@ int main(int argc, const char *argv[])
         REPORT_ERROR("Configure file is needed!");
     }
     configManager.parse(argv[1]);
-    dt = configManager.getValue("semi_lagrangian", "dt", 1);
+    dt = configManager.getValue("semi_lagrangian", "dt", 1.0);
     dx = configManager.getValue("semi_lagrangian", "dx", 0.01);
     dy = configManager.getValue("semi_lagrangian", "dy", 0.01);
     numIter = configManager.getValue("semi_lagrangian", "num_iteration", 2);
@@ -48,8 +48,8 @@ int main(int argc, const char *argv[])
     mesh.init(domain.axisSpan(0)/dx, domain.axisSpan(1)/dy);
 
     // Set the time manager.
-    Time startTime(0*geomtk::TimeUnit::SECONDS);
-    Time endTime(6*PI2/OMEGA*geomtk::TimeUnit::SECONDS);
+    Time startTime(Date(2000, 1, 1), Seconds(0));
+    Time endTime(Date(2000, 1, 1), Seconds(6*PI2/OMEGA));
     timeManager.init(startTime, endTime, dt);
 
     // Create velocity and density fields.
@@ -61,15 +61,15 @@ int main(int argc, const char *argv[])
     // Set initial guess for displacements.
     for (int j = mesh.js(FULL); j <= mesh.je(FULL); ++j) {
         for (int i = mesh.is(FULL); i <= mesh.ie(FULL); ++i) {
-            xd(i, j).setNumDim(2);
-            xd(i, j)() = mesh.gridCoord(CENTER, i, j)();
+            xd(i, j).init(2);
+            xd(i, j) = mesh.gridCoord(CENTER, i, j);
         }
     }
 
     // Set initial conditions.
     // NOTE: Velocity does not satisfy periodic boundary condition!
     SpaceCoord x0(2);
-    x0.setCoord(0.25, 0.5);
+    x0.set(0.25, 0.5);
     newIdx = oldIdx+1;
     for (int j = mesh.js(FULL); j <= mesh.je(FULL); ++j) {
         for (int i = mesh.is(FULL); i <= mesh.ie(FULL); ++i) {
@@ -77,6 +77,8 @@ int main(int argc, const char *argv[])
             double d = domain.calcDistance(x, x0);
             u(oldIdx, i, j) = -OMEGA*(x(1)-0.5);
             v(oldIdx, i, j) =  OMEGA*(x(0)-0.5);
+            //u(oldIdx, i, j) = 0.01;
+            //v(oldIdx, i, j) = 0.01;
             u(newIdx, i, j) = u(oldIdx, i, j);
             v(newIdx, i, j) = v(oldIdx, i, j);
             if (fabs(x(0)-x0(0)) >= 0.02 && d < 0.1) {
@@ -94,8 +96,8 @@ int main(int argc, const char *argv[])
 
     // Set IO manager.
     io.init(timeManager);
-    outputFileIdx = io.registerOutputFile(mesh, outputPattern, geomtk::TimeStepUnit::STEP, 1);
-    io.registerField(outputFileIdx, "double", FULL_DIMENSION, {&u, &v, &f});
+    outputFileIdx = io.addOutputFile(mesh, outputPattern, Seconds(dt));
+    io.addField(outputFileIdx, "double", FULL_DIMENSION, {&u, &v, &f});
     io.output<double, 2>(outputFileIdx, oldIdx, {&u, &v, &f});
 
     // Run the main loop.
@@ -110,11 +112,11 @@ int main(int argc, const char *argv[])
                 // Calculate departure point.
                 for (int iter = 0; iter < numIter; ++iter) {
                     xm() = x0()-0.5*(domain.diffCoord(x0, xd(i, j)));
-                    domain.constrain(xm);
+                    domain.validateCoord(xm);
                     meshIdx.locate(mesh, xm);
                     regrid.run(velocityInterpMethod, halfIdx, u, xm, U(0), &meshIdx);
                     regrid.run(velocityInterpMethod, halfIdx, v, xm, U(1), &meshIdx);
-                    // meshIdx.locate(mesh, x0);
+                    meshIdx.locate(mesh, x0);
                     mesh.move(x0, -dt, U, meshIdx, xd(i, j));
                 }
                 // Calculate tracer mixing density on departure point (Note divergence is zero in this case!).

@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 2.8)
 
 project (IAP-CGFD CXX)
 
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -DBOOST_VARIANT_USE_RELAXED_GET_BY_DEFAULT")
 
 # GEOMTK
 add_subdirectory ("${PROJECT_SOURCE_DIR}/external/geomtk")
@@ -25,5 +25,6 @@ add_subdirectory ("${PROJECT_SOURCE_DIR}/advection/tspas")
 add_subdirectory ("${PROJECT_SOURCE_DIR}/advection/mpdata")
 add_subdirectory ("${PROJECT_SOURCE_DIR}/advection/crank_nicolson")
 add_subdirectory ("${PROJECT_SOURCE_DIR}/advection/semi_lagrangian")
+add_subdirectory ("${PROJECT_SOURCE_DIR}/advection/ffsl")
 
 add_subdirectory ("${PROJECT_SOURCE_DIR}/shallow_water/cartesian/semi_lagrangian")

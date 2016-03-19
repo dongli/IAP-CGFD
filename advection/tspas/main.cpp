@@ -24,7 +24,7 @@ int main(int argc, const char *argv[])
 
     // Read configuration from file.
     configManager.parse(argv[1]);
-    dt = configManager.getValue("tspas", "dt", 1);
+    dt = configManager.getValue("tspas", "dt", 1.0);
     dx = configManager.getValue("tspas", "dx", 0.01);
     outputPattern = configManager.getValue("tspas", "output_pattern", outputPattern);
 
@@ -37,8 +37,8 @@ int main(int argc, const char *argv[])
     mesh.init(domain.axisSpan(0)/dx);
 
     // Set the time manager.
-    Time startTime(0*geomtk::TimeUnit::SECONDS);
-    Time endTime(200*geomtk::TimeUnit::SECONDS);
+    Time startTime(Date(2000, 1, 1), Seconds(0));
+    Time endTime(Date(2000, 1, 1), Seconds(200));
     timeManager.init(startTime, endTime, dt);
 
     // Set up velocity and density fields.
@@ -70,8 +70,8 @@ int main(int argc, const char *argv[])
 
     // Set up IO manager.
     io.init(timeManager);
-    outputFileIdx = io.registerOutputFile(mesh, outputPattern, geomtk::TimeStepUnit::STEP, 1);
-    io.registerField(outputFileIdx, "double", FULL_DIMENSION, {&f});
+    outputFileIdx = io.addOutputFile(mesh, outputPattern, Seconds(dt));
+    io.addField(outputFileIdx, "double", FULL_DIMENSION, {&f});
     io.output<double, 2>(outputFileIdx, oldIdx, {&f});
 
     // Run the main loop.
@@ -115,7 +115,7 @@ int main(int argc, const char *argv[])
         }
         // Upwind pass.
         for (int i = mesh.is(HALF); i <= mesh.ie(HALF); ++i) {
-            fu(i) = dt/dx*0.5*( u(halfIdx, i)*(f(oldIdx, i+1)+f(oldIdx, i))-
+            fu(i) = dt/dx*0.5*(u(halfIdx, i) *(f(oldIdx, i+1)+f(oldIdx, i))-
                                fabs(ustar(i))*(f(oldIdx, i+1)-f(oldIdx, i)));
         }
         fu.applyBndCond();

@@ -4,8 +4,6 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 
 begin
 
-    scheme_index = 7
-
     available_schemes = (/ \
         (/"upwind",         "Upwind scheme"/), \
         (/"beam_warming",   "Beam-Warming scheme"/), \
@@ -17,6 +15,17 @@ begin
         (/"mpdata",         "MPDATA scheme"/), \
         (/"tspas",          "TSPAS scheme"/) \
     /)
+
+    if (isdefined("scheme")) then
+        do i = 0, 8
+            if (available_schemes(i,0) .eq. scheme) then
+                scheme_index = i
+                break
+            end if
+        end do
+    else
+        scheme_index = 8
+    end if
 
     file_prefix = available_schemes(scheme_index, 0)
     title = available_schemes(scheme_index, 1)

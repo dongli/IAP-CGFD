@@ -40,7 +40,7 @@ int main(int argc, const char *argv[])
         REPORT_ERROR("Configure file is needed!");
     }
     configManager.parse(argv[1]);
-    dt = configManager.getValue("semi_lagrangian", "dt", 1);
+    dt = configManager.getValue("semi_lagrangian", "dt", 1.0);
     dx = configManager.getValue("semi_lagrangian", "dx", 0.01);
     dy = configManager.getValue("semi_lagrangian", "dy", 0.01);
     g = configManager.getValue("semi_lagrangian", "gravitational_accelaration", 9.8);
@@ -61,8 +61,8 @@ int main(int argc, const char *argv[])
     mesh.init(domain.axisSpan(0)/dx, domain.axisSpan(1)/dy);
 
     // Set the time manager.
-    Time startTime(0*geomtk::TimeUnit::SECONDS);
-    Time endTime(200*geomtk::TimeUnit::SECONDS);
+    Time startTime(Date(0, 1, 1), Seconds(0));
+    Time endTime(Date(0, 1, 1), Seconds(200));
     timeManager.init(startTime, endTime, dt);
 
     // Set up velocity and density fields.
@@ -90,8 +90,8 @@ int main(int argc, const char *argv[])
 
     // Set up IO manager.
     io.init(timeManager);
-    outputFileIdx = io.registerOutputFile(mesh, outputPattern, geomtk::TimeStepUnit::STEP, 1);
-    io.registerField(outputFileIdx, "double", FULL_DIMENSION, {&u, &v, &h});
+    outputFileIdx = io.addOutputFile(mesh, outputPattern, Seconds(dt));
+    io.addField(outputFileIdx, "double", FULL_DIMENSION, {&u, &v, &h});
     io.output<double, 3>(outputFileIdx, l0, {&u, &v, &h});
 
     // Run the main loop.

@@ -4,17 +4,29 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 
 begin
 
-    scheme_index = 0
-
     available_schemes = (/ \
-        (/"semi_lagrangian",         "Semi-Lagrangian scheme"/) \
+        (/"semi_lagrangian",         "Semi-Lagrangian scheme"/), \
+        (/"ffsl",                    "FFSL scheme"/) \
     /)
 
-    file_prefix = available_schemes(0)
-    title = available_schemes(1)
+    if (isdefined("scheme")) then
+        do i = 0, 1
+            if (available_schemes(i,0) .eq. scheme) then
+                scheme_index = i
+                break
+            end if
+        end do
+    else
+        scheme_index = 0
+    end if
+
+    file_prefix = available_schemes(scheme_index, 0)
+    title = available_schemes(scheme_index, 1)
     root = "."
     start_time = 0
-    end_time = 125
+    if (.not. isdefined("end_time")) then
+        end_time = 126
+    end if
     time_step = 1
     time_stamp = "%3.3d"
 
