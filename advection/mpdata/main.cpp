@@ -31,9 +31,7 @@ int main(int argc, const char *argv[])
     outputPattern = configManager.getValue("mpdata", "output_pattern", outputPattern);
 
     // Set the one dimensional space axis.
-    domain.setAxis(0, "x", "x axis", "m",
-                   0, geomtk::BndType::PERIODIC,
-                   1, geomtk::BndType::PERIODIC);
+    domain.setAxis(0, "x", "x axis", "m", 0, geomtk::BndType::PERIODIC, 1, geomtk::BndType::PERIODIC);
 
     // Set the discrete mesh on the domain.
     mesh.init(domain.axisSpan(0)/dx);

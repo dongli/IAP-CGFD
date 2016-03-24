@@ -13,11 +13,12 @@ begin
         (/"leapfrog",       "Leap-frog scheme"/), \
         (/"crank_nicolson", "Crank-Nicolson scheme"/), \
         (/"mpdata",         "MPDATA scheme"/), \
-        (/"tspas",          "TSPAS scheme"/) \
+        (/"tspas",          "TSPAS scheme"/), \
+        (/"ffsl",           "FFSL scheme"/) \
     /)
 
     if (isdefined("scheme")) then
-        do i = 0, 8
+        do i = 0, 9
             if (available_schemes(i,0) .eq. scheme) then
                 scheme_index = i
                 break
@@ -31,8 +32,12 @@ begin
     title = available_schemes(scheme_index, 1)
     root = "."
     start_time = 0
-    end_time = 200
-    time_step = 1
+    if (.not. isdefined("end_time")) then
+        end_time = 126
+    end if
+    if (.not. isdefined("time_step")) then
+        time_step = 1
+    end if
     time_stamp = "%3.3d"
 
     fs = systemfunc("for (( i = "+start_time+"; i <= "+end_time+"; "+ \

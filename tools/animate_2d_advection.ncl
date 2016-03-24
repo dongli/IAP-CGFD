@@ -27,7 +27,9 @@ begin
     if (.not. isdefined("end_time")) then
         end_time = 126
     end if
-    time_step = 1
+    if (.not. isdefined("time_step")) then
+        time_step = 1
+    end if
     time_stamp = "%3.3d"
 
     fs = systemfunc("for (( i = "+start_time+"; i <= "+end_time+"; "+ \
