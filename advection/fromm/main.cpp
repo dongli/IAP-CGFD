@@ -14,7 +14,7 @@ int main(int argc, const char *argv[])
     int outputFileIdx;
     TimeLevelIndex<2> oldIdx, newIdx, halfIdx;
 
-    double dt, dx;
+    double dt, dx, lw, bw;
     string outputPattern = "fromm.%3s.nc";
 
     if (argc != 2) {
@@ -48,8 +48,8 @@ int main(int argc, const char *argv[])
     // Set the initial conditions.
     newIdx = oldIdx+1;
     for (int i = mesh.is(HALF); i <= mesh.ie(HALF); ++i) {
-        u(oldIdx, i) = 0.005;
-        u(newIdx, i) = 0.005;
+        u(oldIdx, i) = -0.005;
+        u(newIdx, i) = -0.005;
     }
     u.applyBndCond(oldIdx);
     u.applyBndCond(newIdx, true);
@@ -75,10 +75,17 @@ int main(int argc, const char *argv[])
         newIdx = oldIdx+1; halfIdx = oldIdx+0.5;
         for (int i = mesh.is(HALF); i <= mesh.ie(HALF); ++i) {
             // TODO: The following flux is only valid when u > 0.
-            double lw = 0.5*C*(      u(halfIdx, i)    *(f(oldIdx, i+1)+f(oldIdx, i))-
-                               C*pow(u(halfIdx, i), 2)*(f(oldIdx, i+1)-f(oldIdx, i)));
-            double bw = 0.5*C*(      u(halfIdx, i)    *(3*f(oldIdx, i)-f(oldIdx, i-1))-
-                               C*pow(u(halfIdx, i), 2)*(  f(oldIdx, i)-f(oldIdx, i-1)));
+            lw = 0.5*C*(      u(halfIdx, i)    *(f(oldIdx, i+1)+f(oldIdx, i))-
+                        C*pow(u(halfIdx, i), 2)*(f(oldIdx, i+1)-f(oldIdx, i)));
+
+            if (u(halfIdx, i) >= 0) {
+              bw = 0.5*C*(      u(halfIdx, i)    *(3*f(oldIdx, i)-f(oldIdx, i-1))-
+                          C*pow(u(halfIdx, i), 2)*(  f(oldIdx, i)-f(oldIdx, i-1)));
+
+            } else {
+              bw = 0.5*C*(      u(halfIdx, i)    *( -f(oldIdx, i+2)+3*f(oldIdx, i+1))-
+                          C*pow(u(halfIdx, i), 2)*(  f(oldIdx, i+2)-  f(oldIdx, i+1)));
+            }
             fu(i) = 0.5*(lw+bw);
         }
         fu.applyBndCond();

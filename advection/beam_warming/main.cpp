@@ -48,8 +48,8 @@ int main(int argc, const char *argv[])
     // Set the initial conditions.
     newIdx = oldIdx+1;
     for (int i = mesh.is(HALF); i <= mesh.ie(HALF); ++i) {
-        u(oldIdx, i) = -0.005;
-        u(newIdx, i) = -0.005;
+        u(oldIdx, i) = 0.005;
+        u(newIdx, i) = 0.005;
     }
     u.applyBndCond(oldIdx);
     u.applyBndCond(newIdx, true);
