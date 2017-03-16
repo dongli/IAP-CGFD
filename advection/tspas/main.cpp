@@ -7,7 +7,7 @@ int main(int argc, const char *argv[])
     ConfigManager configManager;
     Domain domain(1);
     Mesh mesh(domain);
-    Field<double, 2> u, f;
+    Field<double, 2> u, f, cstar;
     Field<double> fu, fstar, A, gamma, ustar;
     TimeManager timeManager;
     IOManager io;
@@ -49,6 +49,7 @@ int main(int argc, const char *argv[])
     ustar.create("ustar", "m s-1", "intermediate velocity component along x axis", mesh, X_FACE, 1);
     A.create("A", "kg2 m-2", "internal variable", mesh, CENTER, 1);
     gamma.create("gamma", "1", "internal variable", mesh, X_FACE, 1);
+    cstar.create("cstar", "1", "tag for active upwind pass", mesh, X_FACE, 1);
 
     // Set the initial conditions.
     newIdx = oldIdx+1;
@@ -71,7 +72,7 @@ int main(int argc, const char *argv[])
     // Set up IO manager.
     io.init(timeManager);
     outputFileIdx = io.addOutputFile(mesh, outputPattern, Seconds(dt));
-    io.addField(outputFileIdx, "double", FULL_DIMENSION, {&f});
+    io.addField(outputFileIdx, "double", FULL_DIMENSION, {&f, &cstar});
     io.output<double, 2>(outputFileIdx, oldIdx, {&f});
 
     // Run the main loop.
@@ -107,11 +108,11 @@ int main(int argc, const char *argv[])
         for (int i = mesh.is(HALF); i <= mesh.ie(HALF); ++i) {
             double tmp1 = fabs(A(i  ))+A(i  );
             double tmp2 = fabs(A(i+1))+A(i+1);
-            double cstar = 0.5 *(tmp1/(fabs(A(i))+eps)+tmp2/(fabs(A(i+1))+eps))-
-                           0.25*(tmp1*tmp2/(fabs(A(i))*fabs(A(i+1))+eps));
+            double tmp3 = 0.5 *(tmp1/(fabs(A(i))+eps)+tmp2/(fabs(A(i+1))+eps))-
+                          0.25*(tmp1*tmp2/(fabs(A(i))*fabs(A(i+1))+eps));
             // NOTE: We let cstar be 0 or 1.
-            cstar = cstar < 0.5 ? 0 : 1;
-            ustar(i) = (cstar+(1-cstar)*C*fabs(u(halfIdx, i)))*u(halfIdx, i);
+            cstar(newIdx, i) = tmp3 < 0.5 ? 0 : 1;
+            ustar(i) = (cstar(newIdx, i)+(1-cstar(newIdx, i))*C*fabs(u(halfIdx, i)))*u(halfIdx, i);
         }
         // Upwind pass.
         for (int i = mesh.is(HALF); i <= mesh.ie(HALF); ++i) {
@@ -125,7 +126,7 @@ int main(int argc, const char *argv[])
         }
         f.applyBndCond(newIdx);
         timeManager.advance(); oldIdx.shift();
-        io.output<double, 2>(outputFileIdx, oldIdx, {&f});
+        io.output<double, 2>(outputFileIdx, oldIdx, {&f, &cstar});
     }
 
     return 0;

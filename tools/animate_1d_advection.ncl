@@ -45,6 +45,8 @@ begin
         "do printf '"+root+"/"+file_prefix+"."+time_stamp+".nc\n' $i; done")
 
     res = True
+    res@gsnDraw = False
+    res@gsnFrame = False
     res@vpWidthF = 0.6
     res@vpHeightF = 0.4
     res@trXMinF = 0
@@ -64,6 +66,23 @@ begin
         f = addfile(fs(k), "r")
         system("echo 'File "+fs(k)+"' with total mass "+sprintf("%20.10f", sum(f->f)))
         plot = gsn_csm_xy(wks, f->x, f->f, res)
+        if (scheme .eq. "tspas") then
+          if (k .gt. 0) then
+            res2 = True
+            res2@gsnDraw = False
+            res2@gsnFrame = False
+            res2@xyMarkLineMode = "Markers"
+            res2@xyMarker = 5
+            res2@xyMarkerColor = "red"
+
+            cstar = where(f->cstar .eq. 1.0, f->f, 1.0e33)
+            cstar@_FillValue = 1.0e33
+            plot2 = gsn_csm_xy(wks, f->x, cstar, res2)
+            overlay(plot, plot2)
+          end if
+        end if
+        draw(plot)
+        frame(wks)
     end do
 
 end
