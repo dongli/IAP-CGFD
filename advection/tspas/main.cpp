@@ -15,7 +15,7 @@ int main(int argc, const char *argv[])
     TimeLevelIndex<2> oldIdx, newIdx, halfIdx;
 
     double dt, dx;
-    const double eps = 1.0e-15;
+    const double eps = 1.0e-80;
     string outputPattern = "tspas.%3s.nc";
 
     if (argc != 2) {
