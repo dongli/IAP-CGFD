@@ -10,7 +10,7 @@ inline double mismatch(double fm1, double f, double fp1, const string &limiterTy
     } else if (limiterType == "monotonic") {
         double dfMin = f-min(min(fm1, f), fp1);
         double dfMax = max(max(fm1, f), fp1)-f;
-        return copysign(min(min(abs(df), dfMin), dfMax), df);
+        return copysign(min(min(abs(0.5*df), dfMin), dfMax), df);
     } else if (limiterType == "positive_definite") {
         return copysign(min(abs(df), 2*f), df);
     } else {
