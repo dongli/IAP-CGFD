@@ -6,13 +6,13 @@ using arma::field;
 #define OMEGA 0.3
 
 inline double mismatch(double fm1, double f, double fp1, const string &limiterType) {
-    double df = (fp1-fm1)*0.5; // maybe 0.25?
+    double df = (fp1-fm1)*0.5;
     if (limiterType == "none") {
         return df;
     } else if (limiterType == "monotonic") {
         double dfMin = f-min(min(fm1, f), fp1);
         double dfMax = max(max(fm1, f), fp1)-f;
-        return copysign(min(min(abs(df), dfMin), dfMax), df);
+        return copysign(min(min(abs(0.5*df), dfMin), dfMax), df);
     } else if (limiterType == "positive_definite") {
         return copysign(min(abs(df), 2*f), df);
     } else {
@@ -20,42 +20,46 @@ inline double mismatch(double fm1, double f, double fp1, const string &limiterTy
     }
 }
 
-inline void ppm(double fm2, double fm1, double f, double fp1, double fp2, const string &limiterType, double &df, double &f6) {
+inline void ppm(double fm2, double fm1, double f, double fp1, double fp2, const string &limiterType, double &fl, double &df, double &f6) {
     double dfl = mismatch(fm2, fm1, f,   limiterType);
            df  = mismatch(fm1, f,   fp1, limiterType);
     double dfr = mismatch(f,   fp1, fp2, limiterType);
-    double fl = 0.5*(fm1+f)+(dfl-df)/6.0;
+           fl = 0.5*(fm1+f)+(dfl-df)/6.0;
     double fr = 0.5*(fp1+f)+(df-dfr)/6.0;
     fl = f-copysign(min(abs(df), abs(fl-f)), df);
     fr = f+copysign(min(abs(df), abs(fr-f)), df);
-    f6 = 6*(f-0.5*(fl+fr));
+    f6 = 6*f-3*(fl+fr);
     df = fr-fl;
-
-    double zero = 0.5*df-0.25*f6;
-    assert(zero == 0);
 }
 
 void callFluxOperator(const Mesh &mesh, double alpha, const string &fluxOperator,
                       const string &limiterType,
                       const field<double> &u, const field<double> &v,
                       const field<double> &fx, const field<double> &fy,
-                      field<double> &fu, field<double> &fv) {
-    field<double> dfx(size(fx)), fx6(size(fx)), dfy(size(fy)), fy6(size(fy));
+                      Field<double> &fxl, Field<double> &fyl,
+                      Field<double> &dfx, Field<double> &dfy,
+                      Field<double> &fx6, Field<double> &fy6,
+                      Field<double> &fu, Field<double> &fv) {
     if (fluxOperator == "ppm") {
         // Calculate the subgrid distribution of tracer.
         for (int j = mesh.js(FULL); j <= mesh.je(FULL); ++j) {
             for (int i = mesh.is(FULL); i <= mesh.ie(FULL); ++i) {
-                ppm(fx(i-2, j), fx(i-1, j), fx(i, j), fx(i+1, j), fx(i+2, j), limiterType, dfx(i, j), fx6(i, j));
-                ppm(fy(i, j-2), fy(i, j-1), fy(i, j), fy(i, j+1), fy(i, j+2), limiterType, dfy(i, j), fy6(i, j));
+                ppm(fx(i-2, j), fx(i-1, j), fx(i, j), fx(i+1, j), fx(i+2, j), limiterType, fxl(i, j), dfx(i, j), fx6(i, j));
+                ppm(fy(i, j-2), fy(i, j-1), fy(i, j), fy(i, j+1), fy(i, j+2), limiterType, fyl(i, j), dfy(i, j), fy6(i, j));
             }
         }
+        fxl.applyBndCond(); fyl.applyBndCond();
+        dfx.applyBndCond(); dfy.applyBndCond();
+        fx6.applyBndCond(); fy6.applyBndCond();
     }
+    double CNMax = -1;
     // Along x axis.
     for (int j = mesh.js(FULL); j <= mesh.je(FULL); ++j) {
         for (int i = mesh.is(HALF); i <= mesh.ie(HALF); ++i) {
             fu(i, j) = 0;
             double CN = u(i, j)*alpha;
-            int K = static_cast<int>(CN), I = static_cast<int>(i+1-CN);
+            CNMax = max(fabs(CN), CNMax);
+            int K = static_cast<int>(CN);
             double c = CN-K;
             // Calculate integer flux.
             // NOTE: The flux has direction.
@@ -68,6 +72,7 @@ void callFluxOperator(const Mesh &mesh, double alpha, const string &fluxOperator
                     fu(i, j) -= fx(i+k, j);
                 }
             }
+            int I = CN > 0 ? i-K : i+1-K;
             // Calculate fractional flux.
             if (fluxOperator == "upwind") {
                 fu(i, j) += c*fx(I, j);
@@ -79,19 +84,23 @@ void callFluxOperator(const Mesh &mesh, double alpha, const string &fluxOperator
                 if (c > 0) {
                     x1 = 1-c; x2 = 1;
                 } else {
-                    x1 = 0; x2 = -c; I += 1;
+                    x1 = 0; x2 = -c;
                 }
                 double dx = x2-x1, dx2 = x2*x2-x1*x1, dx3 = x2*x2*x2-x1*x1*x1;
-                fu(i, j) += copysign(fx(I, j)*dx+0.5*dfx(I, j)*dx2+fx6(I, j)*(dx/12-dx3/3), c);
+                fu(i, j) += copysign(fxl(I, j)*dx+0.5*dfx(I, j)*dx2+fx6(I, j)*(0.5*dx2-dx3/3.0), c);
             }
         }
     }
+    cout << "CNx max: " << CNMax << endl;
+    fu.applyBndCond();
+    CNMax = -1;
     // Along y axis.
     for (int j = mesh.js(HALF); j <= mesh.je(HALF); ++j) {
         for (int i = mesh.is(FULL); i <= mesh.ie(FULL); ++i) {
             fv(i, j) = 0;
             double CN = v(i, j)*alpha;
-            int K = static_cast<int>(CN), J = static_cast<int>(j+1-CN);
+            CNMax = max(fabs(CN), CNMax);
+            int K = static_cast<int>(CN);
             double c = CN-K;
             // Calculate integer flux.
             // NOTE: The flux has direction.
@@ -104,6 +113,7 @@ void callFluxOperator(const Mesh &mesh, double alpha, const string &fluxOperator
                     fv(i, j) -= fy(i, j+k);
                 }
             }
+            int J = CN > 0 ? j-K : j+1-K;
             // Calculate fractional flux.
             if (fluxOperator == "upwind") {
                 fv(i, j) += c*fy(i, J);
@@ -115,13 +125,15 @@ void callFluxOperator(const Mesh &mesh, double alpha, const string &fluxOperator
                 if (c > 0) {
                     y1 = 1-c; y2 = 1;
                 } else {
-                    y1 = 0; y2 = -c; J += 1;
+                    y1 = 0; y2 = -c;
                 }
                 double dy = y2-y1, dy2 = y2*y2-y1*y1, dy3 = y2*y2*y2-y1*y1*y1;
-                fv(i, j) += copysign(fy(i, J)*dy+0.5*dfy(i, J)*dy2+fy6(i, J)*(dy/12-dy3/3), c);
+                fv(i, j) += copysign(fyl(i, J)*dy+0.5*dfy(i, J)*dy2+fy6(i, J)*(0.5*dy2-dy3/3.0), c);
             }
         }
     }
+    fv.applyBndCond();
+    cout << "CNy max: " << CNMax << endl;
 }
 
 int main(int argc, char const* argv[])
@@ -130,6 +142,7 @@ int main(int argc, char const* argv[])
     Domain domain(2);
     Mesh mesh(domain, 20);
     Field<double, 2> u, v, f;
+    Field<double> fxl, fyl, dfx, dfy, fx6, fy6;
     Field<double> fx, fy, cx, cy, au, av, fu, fv;
     TimeManager timeManager;
     IOManager io;
@@ -150,14 +163,14 @@ int main(int argc, char const* argv[])
 
     // Read configuration from file.
     configManager.parse(argv[1]);
-    dt = configManager.getValue("ffsl", "dt", 0.05);
-    dx = configManager.getValue("ffsl", "dx", 0.01);
-    dy = configManager.getValue("ffsl", "dy", 0.01);
-    outputPattern = configManager.getValue("ffsl", "output_pattern", outputPattern);
-    advectiveOperator = configManager.getValue("ffsl", "advective_operator", advectiveOperator);
-    fluxOperator = configManager.getValue("ffsl", "flux_operator", fluxOperator);
-    limiterType = configManager.getValue("ffsl", "limiter_type", limiterType);
-    advectInterpMethod = Regrid::methodFromString(configManager.getValue<string>("ffsl", "advect_interp_method"));
+    dt = configManager.getValue("ffsl_2d", "dt", 1.0);
+    dx = configManager.getValue("ffsl_2d", "dx", 0.01);
+    dy = configManager.getValue("ffsl_2d", "dy", 0.01);
+    outputPattern = configManager.getValue("ffsl_2d", "output_pattern", outputPattern);
+    advectiveOperator = configManager.getValue("ffsl_2d", "advective_operator", advectiveOperator);
+    fluxOperator = configManager.getValue("ffsl_2d", "flux_operator", fluxOperator);
+    limiterType = configManager.getValue("ffsl_2d", "limiter_type", limiterType);
+    advectInterpMethod = Regrid::methodFromString(configManager.getValue<string>("ffsl_2d", "advect_interp_method"));
 
     // Set the one dimensional space axis.
     domain.setAxis(0, "x", "x axis", "m", 0, geomtk::BndType::PERIODIC, 1, geomtk::BndType::PERIODIC);
@@ -175,6 +188,12 @@ int main(int argc, char const* argv[])
     u.create("u", "m s-1", "velocity component along x axis", mesh, X_FACE, 2, true);
     v.create("v", "m s-1", "velocity component along y axis", mesh, Y_FACE, 2, true);
     f.create("f", "kg m-2", "tracer density", mesh, CENTER, 2);
+    fxl.create("fxl", "", "tracer density on left cell face", mesh, CENTER, 2);
+    fyl.create("fyl", "", "tracer density on top cell face", mesh, CENTER, 2);
+    dfx.create("dfx", "", "tracer density mismatch along x axis", mesh, CENTER, 2);
+    dfy.create("dfy", "", "tracer density mismatch along y axis", mesh, CENTER, 2);
+    fx6.create("fx6", "", "curvature along x axis", mesh, CENTER, 2);
+    fy6.create("fy6", "", "curvature along y axis", mesh, CENTER, 2);
     fx.create("fx", "kg m-2", "new density due to advective operator along x axis", mesh, CENTER, 2);
     fy.create("fy", "kg m-2", "new density due to advective operator along y axis", mesh, CENTER, 2);
     cx.create("cx", "1", "divergence component along x axis times dt", mesh, CENTER, 2);
@@ -195,8 +214,8 @@ int main(int argc, char const* argv[])
             double d = domain.calcDistance(x, x0);
             u(oldIdx, i, j) = -OMEGA*(x(1)-0.5);
             v(oldIdx, i, j) =  OMEGA*(x(0)-0.5);
-            u(oldIdx, i, j) = 0.134;
-            v(oldIdx, i, j) = 0;
+            // u(oldIdx, i, j) = 0.134;
+            // v(oldIdx, i, j) = 0;
             u(newIdx, i, j) = u(oldIdx, i, j);
             v(newIdx, i, j) = v(oldIdx, i, j);
             if (fabs(x(0)-x0(0)) >= 0.02 && d < 0.1) {
@@ -236,19 +255,19 @@ int main(int argc, char const* argv[])
                     domain.validateCoord(xd);
                     meshIdx.locate(mesh, xd);
                     regrid.run(advectInterpMethod, oldIdx, f, xd, fx0, &meshIdx);
-                    fx(i, j) = 0.5*(f(oldIdx, i, j)+fx0);
+                    fx(i, j) = f(oldIdx, i, j)+0.5*(fx0-f(oldIdx, i, j));
                     // Along y axis.
                     double va = 0.5*(v(halfIdx, i, j)+v(halfIdx, i, j-1));
                     xd(1) = x0(1)-dt*va; xd(0) = x0(0);
                     domain.validateCoord(xd);
                     meshIdx.locate(mesh, xd);
                     regrid.run(advectInterpMethod, oldIdx, f, xd, fy0, &meshIdx);
-                    fy(i, j) = 0.5*(f(oldIdx, i, j)+fy0);
+                    fy(i, j) = f(oldIdx, i, j)+0.5*(fy0-f(oldIdx, i, j));
                 }
             }
         } else if (advectiveOperator == "from_flux_operator") {
             // Use the advective form of the outer flux operator.
-            callFluxOperator(mesh, dt/dx, fluxOperator, limiterType, u(halfIdx), v(halfIdx), f(oldIdx), f(oldIdx), au(), av());
+            callFluxOperator(mesh, dt/dx, fluxOperator, limiterType, u(halfIdx), v(halfIdx), f(oldIdx), f(oldIdx), fxl, fyl, dfx, dfy, fx6, fy6, au, av);
             // Substract the divergence parts from the flux.
             for (int j = mesh.js(FULL); j <= mesh.je(FULL); ++j) {
                 for (int i = mesh.is(FULL); i <= mesh.ie(FULL); ++i) {
@@ -259,12 +278,12 @@ int main(int argc, char const* argv[])
             cx.applyBndCond(); cy.applyBndCond();
             for (int j = mesh.js(FULL); j <= mesh.je(FULL); ++j) {
                 for (int i = mesh.is(HALF); i <= mesh.ie(HALF); ++i) {
-                    au(i, j) += 0.5*(cx(i, j)*f(oldIdx, i, j)+cx(i+1, j)*f(oldIdx, i+1, j));
+                    au(i, j) -= 0.5*(cx(i, j)*f(oldIdx, i, j)+cx(i+1, j)*f(oldIdx, i+1, j));
                 }
             }
             for (int j = mesh.js(HALF); j <= mesh.je(HALF); ++j) {
                 for (int i = mesh.is(FULL); i <= mesh.ie(FULL); ++i) {
-                    av(i, j) += 0.5*(cy(i, j)*f(oldIdx, i, j)+cy(i, j+1)*f(oldIdx, i, j+1));
+                    av(i, j) -= 0.5*(cy(i, j)*f(oldIdx, i, j)+cy(i, j+1)*f(oldIdx, i, j+1));
                 }
             }
             au.applyBndCond(); av.applyBndCond();
@@ -277,8 +296,7 @@ int main(int argc, char const* argv[])
         }
         fx.applyBndCond(); fy.applyBndCond();
         // Do outer flux operator.
-        callFluxOperator(mesh, dt/dx, fluxOperator, limiterType, u(halfIdx), v(halfIdx), fy(), fx(), fu(), fv());
-        fu.applyBndCond(); fv.applyBndCond();
+        callFluxOperator(mesh, dt/dx, fluxOperator, limiterType, u(halfIdx), v(halfIdx), fy(), fx(), fxl, fyl, dfx, dfy, fx6, fy6, fu, fv);
         // Get the final results.
         for (int j = mesh.js(FULL); j <= mesh.je(FULL); ++j) {
             for (int i = mesh.is(FULL); i <= mesh.ie(FULL); ++i) {

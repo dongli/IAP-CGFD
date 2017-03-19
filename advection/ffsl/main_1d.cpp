@@ -44,9 +44,11 @@ void callFluxOperator(const Mesh &mesh, double alpha, const string &fluxOperator
         df.applyBndCond();
         f6.applyBndCond();
     }
+    double CNMax = -1;
     for (int i = mesh.is(HALF); i <= mesh.ie(HALF); ++i) {
         fu(i) = 0;
         double CN = u(i)*alpha;
+        CNMax = max(fabs(CN), CNMax);
         int K = static_cast<int>(CN);
         double c = CN-K;
         // Calculate integer flux.
@@ -80,13 +82,14 @@ void callFluxOperator(const Mesh &mesh, double alpha, const string &fluxOperator
         }
     }
     fu.applyBndCond();
+    cout << "CNx max: " << CNMax << endl;
 }
 
 int main(int argc, char const* argv[])
 {
     ConfigManager configManager;
     Domain domain(1);
-    Mesh mesh(domain, 2);
+    Mesh mesh(domain, 20);
     Field<double, 2> u, f;
     Field<double> fl, df, f6, fu;
     TimeManager timeManager;
